@@ -1,0 +1,22 @@
+services:
+  # Executor Balancer API (только приложение, без БД)
+  executor-balancer:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8006"
+    environment:
+      - USE_DATABASE=false
+      - PYTHONPATH=/app
+    volumes:
+      - ./static:/app/static
+      - ./templates:/app/templates
+      - ./app:/app/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executor Balancer - Руководство пользователя</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 0;
+        }
+        .feature-card {
+            transition: transform 0.3s;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .algorithm-step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .code-example {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .metric-highlight {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-balance-scale"></i> Executor Balancer
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Главная</a>
+                <a class="nav-link" href="/app">Приложение</a>
+                <a class="nav-link" href="/docs">API Документация</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-4 fw-bold mb-4">
+                        <i class="fas fa-balance-scale"></i> Executor Balancer
+                    </h1>
+                    <p class="lead mb-4">
+                        Интеллектуальная система справедливого распределения заявок между исполнителями 
+                        с поддержкой динамических правил и точного поиска
+                    </p>
+                    <div class="d-flex gap-3">
+                        <a href="/app" class="btn btn-light btn-lg">
+                            <i class="fas fa-rocket"></i> Запустить приложение
+                        </a>
+                        <a href="#features" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-info-circle"></i> Узнать больше
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-center">
+                    <div class="metric-highlight">
+                        <h3>4000+</h3>
+                        <p>заявок в час</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <section id="features" class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold">Ключевые возможности</h2>
+                <p class="lead text-muted">Современное решение для автоматизации распределения задач</p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card feature-card h-100">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-cogs fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="card-title">Конструктор правил</h5>
+                            <p class="card-text">
+                                Создавайте гибкие правила распределения с 20+ параметрами исполнителей 
+                                и заявок. Поддержка всех операторов сравнения.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card feature-card h-100">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-search fa-3x text-success"></i>
+                            </div>
+                            <h5 class="card-title">Точный поиск</h5>
+                            <p class="card-text">
+                                Интеллектуальный алгоритм поиска исполнителей с рейтинговой системой, 
+                                учитывающий навыки, опыт и справедливое распределение.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card feature-card h-100">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-chart-line fa-3x text-warning"></i>
+                            </div>
+                            <h5 class="card-title">Аналитика и мониторинг</h5>
+                            <p class="card-text">
+                                Дашборд в реальном времени с метриками эффективности, 
+                                статистикой распределения и KPI исполнителей.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How to Use Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold">Как использовать сервис</h2>
+                <p class="lead text-muted">Пошаговое руководство по работе с системой</p>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <!-- Step 1 -->
+                    <div class="d-flex align-items-start mb-4">
+                        <div class="step-number">1</div>
+                        <div>
+                            <h4>Добавление исполнителей</h4>
+                            <p>Создайте профили исполнителей с указанием роли, навыков, опыта и других параметров.</p>
+                            <div class="code-example">
+                                Роль: Программист<br>
+                                Навыки: Python, JavaScript, React<br>
+                                Опыт: 5 лет<br>
+                                Вес: 0.9
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="d-flex align-items-start mb-4">
+                        <div class="step-number">2</div>
+                        <div>
+                            <h4>Создание правил распределения</h4>
+                            <p>Настройте правила с помощью конструктора. Определите условия для автоматического назначения.</p>
+                            <div class="code-example">
+                                Условие: роль == "программист" И вес > 0.7<br>
+                                Приоритет: Высокий<br>
+                                Активность: Включено
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="d-flex align-items-start mb-4">
+                        <div class="step-number">3</div>
+                        <div>
+                            <h4>Создание заявки</h4>
+                            <p>Опишите заявку с указанием требований, навыков, приоритета и других параметров.</p>
+                            <div class="code-example">
+                                Название: Разработка веб-приложения<br>
+                                Категория: Разработка<br>
+                                Навыки: Python, React<br>
+                                Приоритет: Высокий
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="d-flex align-items-start mb-4">
+                        <div class="step-number">4</div>
+                        <div>
+                            <h4>Поиск исполнителей</h4>
+                            <p>Система автоматически найдет подходящих исполнителей с объяснением выбора.</p>
+                            <div class="code-example">
+                                Результат поиска:<br>
+                                1. Алексей Петров - 95% соответствие<br>
+                                2. Мария Сидорова - 87% соответствие<br>
+                                3. Дмитрий Козлов - 82% соответствие
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5 -->
+                    <div class="d-flex align-items-start mb-4">
+                        <div class="step-number">5</div>
+                        <div>
+                            <h4>Назначение и мониторинг</h4>
+                            <p>Назначьте исполнителя и отслеживайте прогресс через дашборд.</p>
+                            <div class="code-example">
+                                Статус: Назначен<br>
+                                Исполнитель: Алексей Петров<br>
+                                Время назначения: 2025-10-28 23:15:00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Algorithm Explanation -->
+    <section class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold">Алгоритм поиска исполнителей</h2>
+                <p class="lead text-muted">Как система выбирает лучшего исполнителя для заявки</p>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-10 mx-auto">
+                    <div class="algorithm-step">
+                        <h5><i class="fas fa-filter"></i> Этап 1: Фильтрация</h5>
+                        <p>Система отбирает только активных исполнителей, не превысивших дневной лимит заявок.</p>
+                    </div>
+
+                    <div class="algorithm-step">
+                        <h5><i class="fas fa-calculator"></i> Этап 2: Оценка соответствия</h5>
+                        <p>Для каждого исполнителя рассчитывается балл соответствия по 6 критериям:</p>
+                        <ul>
+                            <li><strong>Роль-категория:</strong> до 20 баллов</li>
+                            <li><strong>Опыт работы:</strong> до 15 баллов</li>
+                            <li><strong>Языковые навыки:</strong> до 10 баллов</li>
+                            <li><strong>Часовой пояс:</strong> до 5 баллов</li>
+                            <li><strong>Технические навыки:</strong> до 20 баллов</li>
+                            <li><strong>Приоритет заявки:</strong> до 10 баллов</li>
+                        </ul>
+                    </div>
+
+                    <div class="algorithm-step">
+                        <h5><i class="fas fa-balance-scale"></i> Этап 3: Справедливое распределение</h5>
+                        <p>К базовому баллу добавляются бонусы и штрафы:</p>
+                        <ul>
+                            <li><strong>Бонус за вес исполнителя:</strong> до 20 баллов</li>
+                            <li><strong>Бонус за успешность:</strong> до 15 баллов</li>
+                            <li><strong>Бонус за опыт:</strong> до 10 баллов</li>
+                            <li><strong>Штраф за перегрузку:</strong> -5 баллов за каждую активную заявку</li>
+                        </ul>
+                    </div>
+
+                    <div class="algorithm-step">
+                        <h5><i class="fas fa-trophy"></i> Этап 4: Выбор лучшего</h5>
+                        <p>Исполнители сортируются по финальному баллу. Система возвращает топ-10 кандидатов с объяснением выбора.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Documentation -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold">API Endpoints</h2>
+                <p class="lead text-muted">Интеграция с внешними системами</p>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Метод</th>
+                                    <th>Endpoint</th>
+                                    <th>Описание</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-success">POST</span></td>
+                                    <td><code>/executors</code></td>
+                                    <td>Создание исполнителя</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-primary">GET</span></td>
+                                    <td><code>/executors</code></td>
+                                    <td>Получение списка исполнителей</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success">POST</span></td>
+                                    <td><code>/requests</code></td>
+                                    <td>Создание заявки</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-warning">POST</span></td>
+                                    <td><code>/search-executors</code></td>
+                                    <td>Поиск исполнителей для заявки</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-warning">POST</span></td>
+                                    <td><code>/assign</code></td>
+                                    <td>Назначение исполнителя на заявку</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success">POST</span></td>
+                                    <td><code>/rules</code></td>
+                                    <td>Создание правила распределения</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-primary">GET</span></td>
+                                    <td><code>/stats</code></td>
+                                    <td>Получение статистики системы</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="/docs" class="btn btn-primary btn-lg">
+                            <i class="fas fa-book"></i> Полная документация API
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Performance Metrics -->
+    <section class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold">Производительность системы</h2>
+                <p class="lead text-muted">Ключевые показатели эффективности</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="metric-highlight">
+                            <h3>4000+</h3>
+                            <p>заявок в час</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="metric-highlight">
+                            <h3>±1-2%</h3>
+                            <p>погрешность распределения</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="metric-highlight">
+                            <h3>20+</h3>
+                            <p>параметров исполнителя</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="metric-highlight">
+                            <h3>2-10 сек</h3>
+                            <p>время назначения</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="py-5 bg-primary text-white">
+        <div class="container text-center">
+            <h2 class="display-5 fw-bold mb-4">Готовы начать?</h2>
+            <p class="lead mb-4">
+                Запустите Executor Balancer и начните справедливо распределять заявки между исполнителями
+            </p>
+            <a href="/app" class="btn btn-light btn-lg me-3">
+                <i class="fas fa-rocket"></i> Запустить приложение
+            </a>
+            <a href="/docs" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-book"></i> API Документация
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-balance-scale"></i> Executor Balancer</h5>
+                    <p class="text-muted">Система справедливого распределения заявок между исполнителями</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="text-muted mb-0">
+                        © 2025 Executor Balancer. Создано для хакатона Цунами.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

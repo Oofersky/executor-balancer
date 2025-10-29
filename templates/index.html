@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executor Balancer - Система распределения заявок</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .rule-builder {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .rule-condition {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .executor-card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .executor-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .score-badge {
+            font-size: 0.9em;
+            padding: 5px 10px;
+        }
+        .parameter-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin: 2px;
+            display: inline-block;
+        }
+        .dashboard-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+        }
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        .search-results {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .loading-spinner.show {
+            display: inline-block;
+        }
+        .rule-preview {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .executor-match-score {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .match-reasons {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-balance-scale"></i> Executor Balancer
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Главная</a>
+                <a class="nav-link" href="/demo">Демо</a>
+                <a class="nav-link" href="/docs">API Docs</a>
+                <span class="navbar-text ms-3">
+                    <i class="fas fa-clock"></i> <span id="current-time"></span>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Dashboard -->
+            <div class="col-12 mb-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-2">
+                                <div class="metric-value" id="total-executors">-</div>
+                                <div>Всего исполнителей</div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="metric-value" id="active-executors">-</div>
+                                <div>Активных исполнителей</div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="metric-value" id="total-requests">-</div>
+                                <div>Всего заявок</div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="metric-value" id="pending-requests">-</div>
+                                <div>Ожидающих заявок</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="btn-group-vertical w-100" role="group">
+                                    <button type="button" class="btn btn-outline-primary btn-sm mb-1" onclick="exportDashboardExcel()">
+                                        <i class="fas fa-file-excel"></i> Дашборд Excel
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success btn-sm mb-1" onclick="exportExecutorsExcel()">
+                                        <i class="fas fa-users"></i> Исполнители Excel
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="openGrafana()">
+                                        <i class="fas fa-chart-line"></i> Grafana Dashboard
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-12">
+                <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="rules-tab" data-bs-toggle="tab" data-bs-target="#rules" type="button" role="tab">
+                            <i class="fas fa-cogs"></i> Конструктор правил
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="search-tab" data-bs-toggle="tab" data-bs-target="#search" type="button" role="tab">
+                            <i class="fas fa-search"></i> Поиск исполнителей
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="executors-tab" data-bs-toggle="tab" data-bs-target="#executors" type="button" role="tab">
+                            <i class="fas fa-users"></i> Исполнители
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="requests-tab" data-bs-toggle="tab" data-bs-target="#requests" type="button" role="tab">
+                            <i class="fas fa-tasks"></i> Заявки
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="mainTabsContent">
+                    <!-- Rules Constructor Tab -->
+                    <div class="tab-pane fade show active" id="rules" role="tabpanel">
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5><i class="fas fa-cogs"></i> Конструктор правил распределения</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="rule-builder">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Создать новое правило</h6>
+                                            <div class="mb-3">
+                                                <label class="form-label">Название правила</label>
+                                                <input type="text" class="form-control" id="rule-name" placeholder="Например: Высокоприоритетные заявки">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Описание</label>
+                                                <textarea class="form-control" id="rule-description" rows="2" placeholder="Описание правила"></textarea>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Приоритет правила</label>
+                                                <select class="form-select" id="rule-priority">
+                                                    <option value="1">Критический</option>
+                                                    <option value="2">Высокий</option>
+                                                    <option value="3" selected>Средний</option>
+                                                    <option value="4">Низкий</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Условия правила</h6>
+                                            <div id="rule-conditions">
+                                                <div class="rule-condition">
+                                                    <div class="row">
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Поле</label>
+                                                            <select class="form-select field-select" onchange="updateOperators(this)">
+                                                                <option value="">Выберите поле</option>
+                                                                <optgroup label="Исполнитель">
+                                                                    <option value="role">Роль</option>
+                                                                    <option value="weight">Вес</option>
+                                                                    <option value="status">Статус</option>
+                                                                    <option value="active_requests_count">Количество активных заявок</option>
+                                                                    <option value="success_rate">Процент успешности</option>
+                                                                    <option value="daily_limit">Дневной лимит</option>
+                                                                    <option value="experience_years">Опыт работы (лет)</option>
+                                                                    <option value="specialization">Специализация</option>
+                                                                    <option value="language_skills">Языковые навыки</option>
+                                                                    <option value="timezone">Часовой пояс</option>
+                                                                    <option value="availability_hours">Часы доступности</option>
+                                                                    <option value="max_concurrent_tasks">Максимум одновременных задач</option>
+                                                                    <option value="response_time_minutes">Время ответа (мин)</option>
+                                                                    <option value="quality_rating">Рейтинг качества</option>
+                                                                    <option value="certification_level">Уровень сертификации</option>
+                                                                    <option value="department">Отдел</option>
+                                                                    <option value="manager_id">ID менеджера</option>
+                                                                    <option value="cost_per_hour">Стоимость за час</option>
+                                                                    <option value="location">Местоположение</option>
+                                                                    <option value="remote_work">Удаленная работа</option>
+                                                                    <option value="equipment_required">Требуемое оборудование</option>
+                                                                </optgroup>
+                                                                <optgroup label="Заявка">
+                                                                    <option value="priority">Приоритет</option>
+                                                                    <option value="request_weight">Вес заявки</option>
+                                                                    <option value="request_status">Статус заявки</option>
+                                                                    <option value="deadline">Дедлайн</option>
+                                                                    <option value="category">Категория</option>
+                                                                    <option value="complexity">Сложность</option>
+                                                                    <option value="estimated_hours">Оценочные часы</option>
+                                                                    <option value="client_type">Тип клиента</option>
+                                                                    <option value="urgency">Срочность</option>
+                                                                    <option value="budget">Бюджет</option>
+                                                                    <option value="technology_stack">Технологический стек</option>
+                                                                    <option value="required_skills">Требуемые навыки</option>
+                                                                    <option value="language_requirement">Требования к языку</option>
+                                                                    <option value="timezone_requirement">Требования к часовому поясу</option>
+                                                                    <option value="security_clearance">Уровень безопасности</option>
+                                                                    <option value="compliance_requirements">Требования соответствия</option>
+                                                                </optgroup>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">Оператор</label>
+                                                            <select class="form-select operator-select">
+                                                                <option value="equals">Равно</option>
+                                                                <option value="not_equals">Не равно</option>
+                                                                <option value="greater_than">Больше</option>
+                                                                <option value="less_than">Меньше</option>
+                                                                <option value="greater_than_or_equal">Больше или равно</option>
+                                                                <option value="less_than_or_equal">Меньше или равно</option>
+                                                                <option value="contains">Содержит</option>
+                                                                <option value="in">В списке</option>
+                                                                <option value="not_in">Не в списке</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Значение</label>
+                                                            <input type="text" class="form-control value-input" placeholder="Введите значение">
+                                                        </div>
+                                                        <div class="col-md-1">
+                                                            <label class="form-label">&nbsp;</label>
+                                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCondition(this)">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addCondition()">
+                                                <i class="fas fa-plus"></i> Добавить условие
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <div class="rule-preview" id="rule-preview" style="display: none;">
+                                                <h6>Предварительный просмотр правила:</h6>
+                                                <div id="rule-preview-content"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <button type="button" class="btn btn-primary" onclick="saveRule()">
+                                                <i class="fas fa-save"></i> Сохранить правило
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" onclick="testRule()">
+                                                <i class="fas fa-play"></i> Тестировать правило
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Saved Rules -->
+                                <div class="mt-4">
+                                    <h6>Сохраненные правила</h6>
+                                    <div id="saved-rules">
+                                        <!-- Rules will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Executors Tab -->
+                    <div class="tab-pane fade" id="search" role="tabpanel">
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5><i class="fas fa-search"></i> Поиск исполнителей для заявки</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Параметры заявки</h6>
+                                        <div class="mb-3">
+                                            <label class="form-label">Название заявки</label>
+                                            <input type="text" class="form-control" id="request-title" placeholder="Введите название заявки">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Приоритет</label>
+                                            <select class="form-select" id="request-priority">
+                                                <option value="critical">Критический</option>
+                                                <option value="high">Высокий</option>
+                                                <option value="medium" selected>Средний</option>
+                                                <option value="low">Низкий</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Вес заявки (0.0 - 1.0)</label>
+                                            <input type="number" class="form-control" id="request-weight" min="0" max="1" step="0.1" value="0.5">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Категория</label>
+                                            <select class="form-select" id="request-category">
+                                                <option value="technical">Техническая</option>
+                                                <option value="support">Поддержка</option>
+                                                <option value="development">Разработка</option>
+                                                <option value="testing">Тестирование</option>
+                                                <option value="design">Дизайн</option>
+                                                <option value="marketing">Маркетинг</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Сложность</label>
+                                            <select class="form-select" id="request-complexity">
+                                                <option value="low">Низкая</option>
+                                                <option value="medium" selected>Средняя</option>
+                                                <option value="high">Высокая</option>
+                                                <option value="expert">Экспертная</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Оценочные часы</label>
+                                            <input type="number" class="form-control" id="request-estimated-hours" min="1" value="8">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Требуемые навыки (через запятую)</label>
+                                            <input type="text" class="form-control" id="request-skills" placeholder="Python, JavaScript, SQL">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Языковые требования</label>
+                                            <select class="form-select" id="request-language">
+                                                <option value="ru">Русский</option>
+                                                <option value="en">Английский</option>
+                                                <option value="both">Оба языка</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Дополнительные параметры</h6>
+                                        <div class="mb-3">
+                                            <label class="form-label">Тип клиента</label>
+                                            <select class="form-select" id="request-client-type">
+                                                <option value="individual">Физическое лицо</option>
+                                                <option value="business">Бизнес</option>
+                                                <option value="enterprise">Корпоративный</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Срочность</label>
+                                            <select class="form-select" id="request-urgency">
+                                                <option value="low">Низкая</option>
+                                                <option value="medium" selected>Средняя</option>
+                                                <option value="high">Высокая</option>
+                                                <option value="critical">Критическая</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Бюджет</label>
+                                            <input type="number" class="form-control" id="request-budget" placeholder="Введите бюджет">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Технологический стек</label>
+                                            <input type="text" class="form-control" id="request-tech-stack" placeholder="React, Node.js, MongoDB">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Требования к часовому поясу</label>
+                                            <select class="form-select" id="request-timezone">
+                                                <option value="any">Любой</option>
+                                                <option value="MSK">MSK (UTC+3)</option>
+                                                <option value="EST">EST (UTC-5)</option>
+                                                <option value="PST">PST (UTC-8)</option>
+                                                <option value="GMT">GMT (UTC+0)</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Уровень безопасности</label>
+                                            <select class="form-select" id="request-security">
+                                                <option value="public">Публичный</option>
+                                                <option value="internal">Внутренний</option>
+                                                <option value="confidential">Конфиденциальный</option>
+                                                <option value="secret">Секретный</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Требования соответствия</label>
+                                            <input type="text" class="form-control" id="request-compliance" placeholder="GDPR, SOX, PCI DSS">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <button type="button" class="btn btn-primary" onclick="searchExecutors()">
+                                            <i class="fas fa-search"></i> Найти исполнителей
+                                            <span class="loading-spinner spinner-border spinner-border-sm ms-2"></span>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()">
+                                            <i class="fas fa-eraser"></i> Очистить
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Search Results -->
+                        <div class="card mt-3" id="search-results-card" style="display: none;">
+                            <div class="card-header">
+                                <h6><i class="fas fa-list"></i> Результаты поиска</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="search-results" class="search-results">
+                                    <!-- Results will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Executors Tab -->
+                    <div class="tab-pane fade" id="executors" role="tabpanel">
+                        <div class="card mt-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5><i class="fas fa-users"></i> Исполнители</h5>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="showAddExecutorModal()">
+                                    <i class="fas fa-plus"></i> Добавить исполнителя
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="executors-list">
+                                    <!-- Executors will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Requests Tab -->
+                    <div class="tab-pane fade" id="requests" role="tabpanel">
+                        <div class="card mt-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5><i class="fas fa-tasks"></i> Заявки</h5>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="showAddRequestModal()">
+                                    <i class="fas fa-plus"></i> Создать заявку
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="requests-list">
+                                    <!-- Requests will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Executor Modal -->
+    <div class="modal fade" id="addExecutorModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить исполнителя</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-executor-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Имя</label>
+                                    <input type="text" class="form-control" name="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" name="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Роль</label>
+                                    <select class="form-select" name="role" required>
+                                        <option value="admin">Администратор</option>
+                                        <option value="programmer">Программист</option>
+                                        <option value="moderator">Модератор</option>
+                                        <option value="support">Поддержка</option>
+                                        <option value="tester">Тестировщик</option>
+                                        <option value="designer">Дизайнер</option>
+                                        <option value="analyst">Аналитик</option>
+                                        <option value="manager">Менеджер</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Вес (0.0 - 1.0)</label>
+                                    <input type="number" class="form-control" name="weight" min="0" max="1" step="0.1" value="0.5" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Статус</label>
+                                    <select class="form-select" name="status" required>
+                                        <option value="active">Активный</option>
+                                        <option value="inactive">Неактивный</option>
+                                        <option value="busy">Занят</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Опыт работы (лет)</label>
+                                    <input type="number" class="form-control" name="experience_years" min="0" value="1">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Специализация</label>
+                                    <input type="text" class="form-control" name="specialization" placeholder="Frontend, Backend, DevOps">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Языковые навыки</label>
+                                    <input type="text" class="form-control" name="language_skills" placeholder="ru, en">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Часовой пояс</label>
+                                    <select class="form-select" name="timezone">
+                                        <option value="MSK">MSK (UTC+3)</option>
+                                        <option value="EST">EST (UTC-5)</option>
+                                        <option value="PST">PST (UTC-8)</option>
+                                        <option value="GMT">GMT (UTC+0)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Дневной лимит заявок</label>
+                                    <input type="number" class="form-control" name="daily_limit" min="1" value="10">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="addExecutor()">Добавить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Request Modal -->
+    <div class="modal fade" id="addRequestModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создать заявку</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-request-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Название</label>
+                                    <input type="text" class="form-control" name="title" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Описание</label>
+                                    <textarea class="form-control" name="description" rows="3" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Приоритет</label>
+                                    <select class="form-select" name="priority" required>
+                                        <option value="critical">Критический</option>
+                                        <option value="high">Высокий</option>
+                                        <option value="medium" selected>Средний</option>
+                                        <option value="low">Низкий</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Вес заявки (0.0 - 1.0)</label>
+                                    <input type="number" class="form-control" name="weight" min="0" max="1" step="0.1" value="0.5" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Категория</label>
+                                    <select class="form-select" name="category">
+                                        <option value="technical">Техническая</option>
+                                        <option value="support">Поддержка</option>
+                                        <option value="development">Разработка</option>
+                                        <option value="testing">Тестирование</option>
+                                        <option value="design">Дизайн</option>
+                                        <option value="marketing">Маркетинг</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Сложность</label>
+                                    <select class="form-select" name="complexity">
+                                        <option value="low">Низкая</option>
+                                        <option value="medium" selected>Средняя</option>
+                                        <option value="high">Высокая</option>
+                                        <option value="expert">Экспертная</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Оценочные часы</label>
+                                    <input type="number" class="form-control" name="estimated_hours" min="1" value="8">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Требуемые навыки</label>
+                                    <input type="text" class="form-control" name="required_skills" placeholder="Python, JavaScript, SQL">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Языковые требования</label>
+                                    <select class="form-select" name="language_requirement">
+                                        <option value="ru">Русский</option>
+                                        <option value="en">Английский</option>
+                                        <option value="both">Оба языка</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Тип клиента</label>
+                                    <select class="form-select" name="client_type">
+                                        <option value="individual">Физическое лицо</option>
+                                        <option value="business">Бизнес</option>
+                                        <option value="enterprise">Корпоративный</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Срочность</label>
+                                    <select class="form-select" name="urgency">
+                                        <option value="low">Низкая</option>
+                                        <option value="medium" selected>Средняя</option>
+                                        <option value="high">Высокая</option>
+                                        <option value="critical">Критическая</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Бюджет</label>
+                                    <input type="number" class="form-control" name="budget" placeholder="Введите бюджет">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Технологический стек</label>
+                                    <input type="text" class="form-control" name="technology_stack" placeholder="React, Node.js, MongoDB">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Требования к часовому поясу</label>
+                                    <select class="form-select" name="timezone_requirement">
+                                        <option value="any">Любой</option>
+                                        <option value="MSK">MSK (UTC+3)</option>
+                                        <option value="EST">EST (UTC-5)</option>
+                                        <option value="PST">PST (UTC-8)</option>
+                                        <option value="GMT">GMT (UTC+0)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Уровень безопасности</label>
+                                    <select class="form-select" name="security_clearance">
+                                        <option value="public">Публичный</option>
+                                        <option value="internal">Внутренний</option>
+                                        <option value="confidential">Конфиденциальный</option>
+                                        <option value="secret">Секретный</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Требования соответствия</label>
+                                    <input type="text" class="form-control" name="compliance_requirements" placeholder="GDPR, SOX, PCI DSS">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="addRequest()">Создать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/app.js"></script>
+</body>
+</html>
