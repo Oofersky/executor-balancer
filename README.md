@@ -34,8 +34,8 @@ Executor Balancer - это интеллектуальная система дл�
 git clone https://github.com/Oofersky/executor-balancer.git
 cd executor-balancer
 
-# Запустите приложение одной командой
-quick-start.bat
+# Установка зависимостей
+pip install fastapi uvicorn pydantic pydantic-settings jinja2 python-multipart
 ```
 
 #### Вариант 2: Полный запуск с Dashboard
